@@ -6,8 +6,8 @@
  * Copyright (c) 2016 Hackaday.com
  */
  
-#ifndef SUPERCON-BADGE-ANIMATE_H
-#define	SUPERCON-BADGE-ANIMATE_H
+#ifndef SUPERCON_BADGE_ANIMATE_H
+#define	SUPERCON_BADGE_ANIMATE_H
 
  #include "HaD_Badge.h"
 
@@ -22,4 +22,4 @@ void drawArrow(uint8_t rightOrLeft);
 //This function prototype needs to be here:
 void animateBadge(void);
 
-#endif	/* SUPERCON-BADGE-ANIMATE_H */
+#endif	/* SUPERCON_BADGE_ANIMATE_H */

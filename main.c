@@ -20,7 +20,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "HaD_Badge.h"
-#include "SuperCon-badge-animate.h"
+#include "binary-clock.h"
 
 volatile uint16_t innerTick = 0;
 volatile uint32_t ticks = 0;
@@ -135,8 +135,10 @@ uint32_t getTime(void) {
     //some magic will be used here to normalize to milliseconds
     //This should be somewhat fast using shifting to approximate a weird division
     // 50%+25%=75%  (need 83.19% so about 9.84% error but some time is wasted with other stuff -- close enough for user)
+    // improved to 50% + 25% + 6.25% + 1.5625% + 0.390625% = 83.203%
     
-    return (ticks>>1)+(ticks>>2);
+//    return (ticks>>1)+(ticks>>2) + (ticks>>4) + (ticks>>6) + (ticks>>8);
+    return (ticks>>2) + (ticks>>3);
 }
 
 void controlDelayMs(uint16_t ms) {
@@ -167,7 +169,8 @@ int main(int argc, char** argv) {
     displayLatch();
     getTime();
     
-    animateBadge();
+    // animateBadge();
+    run_clock();
     
     return (EXIT_SUCCESS);
 }
