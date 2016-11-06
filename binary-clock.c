@@ -9,7 +9,7 @@
 #include "HaD_Badge.h"
 #include "binary-clock.h"
 
-// private admin struct
+//! private admin struct to keep track of the time
 typedef struct {
     uint8_t hour_ten;
     uint8_t hour_one;
@@ -19,7 +19,7 @@ typedef struct {
     uint8_t sec_one;
 } clock_t;
 
-
+//! structure to keep track of the set state
 typedef enum {
     HOUR_TEN,
     HOUR_ONE,
@@ -29,18 +29,20 @@ typedef enum {
     SEC_ONE,
 } set_state_t;
 
+//! structure for the main clock state
 typedef enum {
     RUN,
     SET,
 }clock_state_t;
 
-clock_state_t clock_state = RUN;
-set_state_t set_state = HOUR_TEN;
+// private state variables
+clock_state_t clock_state = RUN;  //!< keeps track of the main clock state (RUN/SET)
+set_state_t set_state = HOUR_TEN; //!< sub-state tracker of the main clock set state
 
 // private global variables
-clock_t clock;
-clock_t *clock_ptr;
-uint32_t previous_time;
+clock_t clock;           //!< clock admin structure holding the time
+clock_t *clock_ptr;      //!< pointer to the clock struct
+uint32_t previous_time;  //!< keeps track of the last time we inc'd the clock
 
 // private functions
 void init_clock(void);
@@ -51,14 +53,28 @@ void update_display(void);
 void set_row(uint8_t row, uint16_t data);
 
 
-
+/*!
+ * Increments the time by polling `getTime()` and adjusts the brightness by
+ * checking the accelerometer y axis
+ */
 void init_clock(void)
 {
     clock_ptr = &clock;
     set_time(12, 30, 00);
     previous_time = getTime();
+    Brightness = 15;
+    PowerOFF = 255;  // powers off after 6*255 seconds (25 minutes)
 }
 
+
+/*!
+ * Increments the time by polling `getTime()` and adjusts the brightness by
+ * checking the accelerometer y axis
+ * 
+ * @param[in] hour (uint8_t): hours value to be set
+ * @param[in] minute (uint8_t): minutes value to be set
+ * @param[in] second (uint8_t): seconds value to be set
+ */
 void set_time(uint8_t hour, uint8_t minute, uint8_t second)
 {
     clock_ptr->hour_ten = hour / 10;
@@ -69,13 +85,15 @@ void set_time(uint8_t hour, uint8_t minute, uint8_t second)
     clock_ptr->sec_one = second % 10;
 }
 
+
+
 void run_clock(void)
 {
     init_clock();
     while(1) {
-        uint8_t button;
         update_clock(clock_state);
-//        controlDelayMs(50);
+        controlDelayMs(50);
+        pollAccel();
         switch(clock_state) {
             case RUN:
                 if (getControl() == DOWN) {
@@ -84,178 +102,214 @@ void run_clock(void)
                 break;
             
             case SET:
-                switch(set_state) {
-                    case HOUR_TEN:
-                        button = getControl();
-                        if (button == DOWN) {
-                            set_state = HOUR_TEN;
-                            clock_state = RUN;
-                        } else if (button == UP) {
-                            set_state = HOUR_ONE;
-                        } else if (button == LEFT) {
-                            // up for us
-                            if (clock.hour_ten < 2) {
-                                clock.hour_ten += 1;
-                            } else {
-                                clock.hour_ten -= 2;
-                            }
-                        } else if (button == RIGHT) {
-                            // down for us
-                            if (clock.hour_ten > 1) {
-                                clock.hour_ten -= 1;
-                            } else {
-                                clock.hour_ten += 2;
-                            }
-                        }
-                    break;
-                    
-                    case HOUR_ONE:
-                        button = getControl();
-                        if (button == DOWN) {
-                            set_state = HOUR_TEN;
-                            clock_state = RUN;
-                        } else if (button == UP) {
-                            set_state = MIN_TEN;
-                        } else if (button == LEFT) {
-                            // up for us
-                            if (clock.hour_ten == 2) {
-                                if (clock.hour_one < 3) {
-                                    clock.hour_one += 1;
-                                } else {
-                                    clock.hour_one = 0;
-                                }
-                            } else {
-                                if (clock.hour_one < 9) {
-                                    clock.hour_one += 1;
-                                } else {
-                                    clock.hour_one = 0;
-                                }
-                            }
-                        } else if (button == RIGHT) {
-                            // down for us
-                            if (clock.hour_ten == 2) {
-                                if (clock.hour_one > 0) {
-                                    clock.hour_one -= 1;
-                                } else {
-                                    clock.hour_one = 3;
-                                }
-                            } else {
-                                if (clock.hour_one > 0) {
-                                    clock.hour_one -= 1;
-                                } else {
-                                    clock.hour_one = 9;
-                                }
-                            }
-                        }
-                    break;
-                        
-                    case MIN_TEN:
-                        button = getControl();
-                        if (button == DOWN) {
-                            set_state = HOUR_TEN;
-                            clock_state = RUN;
-                        } else if (button == UP) {
-                            set_state = MIN_ONE;
-                        } else if (button == LEFT) {
-                            // up for us
-                            if (clock.min_ten < 5) {
-                                clock.min_ten += 1;
-                            } else {
-                                clock.min_ten -= 5;
-                            }
-                        } else if (button == RIGHT) {
-                            // down for us
-                            if (clock.min_ten > 1) {
-                                clock.min_ten -= 1;
-                            } else {
-                                clock.min_ten += 5;
-                            }
-                        }
-                    break;
-                        
-                    case MIN_ONE:
-                        button = getControl();
-                        if (button == DOWN) {
-                            set_state = HOUR_TEN;
-                            clock_state = RUN;
-                        } else if (button == UP) {
-                            set_state = SEC_TEN;
-                        } else if (button == LEFT) {
-                            // up for us
-                            if (clock.min_one < 9) {
-                                clock.min_one += 1;
-                            } else {
-                                clock.min_one = 0;
-                            }
-                        } else if (button == RIGHT) {
-                            // down for us
-                            if (clock.min_one > 0) {
-                                clock.min_one -= 1;
-                            } else {
-                                clock.min_one += 9;
-                            }
-                        }
-                    break;
-                        
-                    case SEC_TEN:
-                        button = getControl();
-                        if (button == DOWN) {
-                            set_state = HOUR_TEN;
-                            clock_state = RUN;
-                        } else if (button == UP) {
-                            set_state = SEC_ONE;
-                        } else if (button == LEFT) {
-                            // up for us
-                            if (clock.sec_ten < 5) {
-                                clock.sec_ten += 1;
-                            } else {
-                                clock.sec_ten -= 5;
-                            }
-                        } else if (button == RIGHT) {
-                            // down for us
-                            if (clock.sec_ten > 1) {
-                                clock.sec_ten -= 1;
-                            } else {
-                                clock.sec_ten += 5;
-                            }
-                        }
-                    break;
-                        
-                    case SEC_ONE:
-                        button = getControl();
-                        if (button == DOWN) {
-                            set_state = HOUR_TEN;
-                            clock_state = RUN;
-                        } else if (button == UP) {
-                            set_state = HOUR_TEN;
-                        } else if (button == LEFT) {
-                            // up for us
-                            if (clock.sec_one < 9) {
-                                clock.sec_one += 1;
-                            } else {
-                                clock.sec_one = 0;
-                            }
-                        } else if (button == RIGHT) {
-                            // down for us
-                            if (clock.sec_one > 0) {
-                                clock.sec_one -= 1;
-                            } else {
-                                clock.sec_one += 9;
-                            }
-                        }
-                    break;
-                }
+                run_set();
             break;
         }
     }
 }
 
+/*!
+ * Runs the set_state state machine. Loops through the columns, incrementing or
+ * decrementing the time at each column.
+ */
+void run_set(void)
+{
+    uint8_t button;
+    switch(set_state) {
+        case HOUR_TEN:
+            button = getControl();
+            if (button == DOWN) {
+                set_state = HOUR_TEN;
+                clock_state = RUN;
+            } else if (button == UP) {
+                set_state = HOUR_ONE;
+            } else if (button == LEFT) {
+                // up for us
+                if (clock.hour_ten < 2) {
+                    clock.hour_ten += 1;
+                } else {
+                    clock.hour_ten -= 2;
+                }
+            } else if (button == RIGHT) {
+                // down for us
+                if (clock.hour_ten > 0) {
+                    clock.hour_ten -= 1;
+                } else {
+                    clock.hour_ten = 2;
+                }
+            }
+        break;
 
+        case HOUR_ONE:
+            button = getControl();
+            if (button == DOWN) {
+                set_state = HOUR_TEN;
+                clock_state = RUN;
+            } else if (button == UP) {
+                set_state = MIN_TEN;
+            } else if (button == LEFT) {
+                // up for us
+                if (clock.hour_ten == 2) {
+                    if (clock.hour_one < 3) {
+                        clock.hour_one += 1;
+                    } else {
+                        clock.hour_one = 0;
+                    }
+                } else {
+                    if (clock.hour_one < 9) {
+                        clock.hour_one += 1;
+                    } else {
+                        clock.hour_one = 0;
+                    }
+                }
+            } else if (button == RIGHT) {
+                // down for us
+                if (clock.hour_ten == 2) {
+                    if (clock.hour_one > 0) {
+                        clock.hour_one -= 1;
+                    } else {
+                        clock.hour_one = 3;
+                    }
+                } else {
+                    if (clock.hour_one > 0) {
+                        clock.hour_one -= 1;
+                    } else {
+                        clock.hour_one = 9;
+                    }
+                }
+            }
+        break;
+
+        case MIN_TEN:
+            button = getControl();
+            if (button == DOWN) {
+                set_state = HOUR_TEN;
+                clock_state = RUN;
+            } else if (button == UP) {
+                set_state = MIN_ONE;
+            } else if (button == LEFT) {
+                // up for us
+                if (clock.min_ten < 5) {
+                    clock.min_ten += 1;
+                } else {
+                    clock.min_ten -= 5;
+                }
+            } else if (button == RIGHT) {
+                // down for us
+                if (clock.min_ten > 0) {
+                    clock.min_ten -= 1;
+                } else {
+                    clock.min_ten = 5;
+                }
+            }
+        break;
+
+        case MIN_ONE:
+            button = getControl();
+            if (button == DOWN) {
+                set_state = HOUR_TEN;
+                clock_state = RUN;
+            } else if (button == UP) {
+                set_state = SEC_TEN;
+            } else if (button == LEFT) {
+                // up for us
+                if (clock.min_one < 9) {
+                    clock.min_one += 1;
+                } else {
+                    clock.min_one = 0;
+                }
+            } else if (button == RIGHT) {
+                // down for us
+                if (clock.min_one > 0) {
+                    clock.min_one -= 1;
+                } else {
+                    clock.min_one = 9;
+                }
+            }
+        break;
+
+        case SEC_TEN:
+            button = getControl();
+            if (button == DOWN) {
+                set_state = HOUR_TEN;
+                clock_state = RUN;
+            } else if (button == UP) {
+                set_state = SEC_ONE;
+            } else if (button == LEFT) {
+                // up for us
+                if (clock.sec_ten < 5) {
+                    clock.sec_ten += 1;
+                } else {
+                    clock.sec_ten -= 5;
+                }
+            } else if (button == RIGHT) {
+                // down for us
+                if (clock.sec_ten > 0) {
+                    clock.sec_ten -= 1;
+                } else {
+                    clock.sec_ten = 5;
+                }
+            }
+        break;
+
+        case SEC_ONE:
+            button = getControl();
+            if (button == DOWN) {
+                set_state = HOUR_TEN;
+                clock_state = RUN;
+            } else if (button == UP) {
+                set_state = HOUR_TEN;
+            } else if (button == LEFT) {
+                // up for us
+                if (clock.sec_one < 9) {
+                    clock.sec_one += 1;
+                } else {
+                    clock.sec_one = 0;
+                }
+            } else if (button == RIGHT) {
+                // down for us
+                if (clock.sec_one > 0) {
+                    clock.sec_one -= 1;
+                } else {
+                    clock.sec_one = 9;
+                }
+            }
+        break;
+    }
+}
+
+
+/*!
+ * Increments the time by polling `getTime()` and adjusts the brightness by
+ * checking the accelerometer y axis
+ * 
+ * @param[in] state (clock_state_t): current state of the clock. i.e. RUN for
+ *      the normal time incrementing and displaying the normal clock face or
+ *      SET for blinking the time
+ */
 void update_clock(clock_state_t state)
 {
     uint32_t current_time = getTime();
-    // check time
-    if (current_time - previous_time > 1000) {
+    // get a signed weighted representation of the accel in y direction.
+    int16_t AccY = AccYlow - AccYhigh;
+    
+    if (current_time - previous_time > 300) {
+        // adjust brightness
+        if (AccY < -500) {
+            if (Brightness > 0) {
+                Brightness -= 1;
+            }
+        }
+        else if (AccY > 300) {
+            if (Brightness < 15) {
+                Brightness += 1;
+            }
+        }
+    }
+    
+    // run main timing (1800 counts ~= 1 second)
+    if (current_time - previous_time > 1800) {  // timing adjustments
+        // run the time incrementing or setting
         if (state == RUN) {
             // update time variables
             increment_time(1);
@@ -264,7 +318,7 @@ void update_clock(clock_state_t state)
             update_display();
         } else {
             // setting time. Blink the screen
-            if (current_time % 1000 >= 300) {
+            if (current_time % 2000 >= 600) {    // timing adjustments
                 update_display();
             } else {
                 displayClear();  // Turn all LEDs off
@@ -275,6 +329,11 @@ void update_clock(clock_state_t state)
 }
 
 
+/*!
+ * Updates the time in the clock struct.
+ * 
+ * @param[in] delta (uint8_t): amount of seconds to increment by.
+ */
 void increment_time(uint8_t delta)
 {
     clock_ptr->sec_one += delta;
@@ -308,6 +367,9 @@ void increment_time(uint8_t delta)
 }
 
 
+/*!
+ * Updates the display according to the clock pointer.
+ */
 void update_display(void)
 {
     // clear not necessary because set row clears or sets all bits every time
@@ -322,6 +384,12 @@ void update_display(void)
 }
 
 
+/*!
+ * Sets a given row with the first four bits of the given data.
+ * 
+ * @param[in] row (uint8_t): the row index that you want to update
+ * @param[in] data (uint8_t): the data you want to display (the lsb nibble)
+ */
 void set_row(uint8_t row, uint16_t data)
 {
     // build up the data string

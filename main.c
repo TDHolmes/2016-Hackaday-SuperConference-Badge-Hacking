@@ -2,16 +2,20 @@
  * File:   main.c
  * Author: szczys@hotmail.com
  *
- * This is a C framework for hacking the 2016 Hackaday SuperConference hardware badge.
+ * This is a C framework for hacking the 2016 Hackaday SuperConference hardware
+ * badge.
  *
- * The badge uses a bootloader which is running a hardware handling "kernel". The methods to
- * access thesehardware features are in this file (main.c), the memory mapped values are in HaD_Badge.h
+ * The badge uses a bootloader which is running a hardware handling "kernel".
+ * The methods to access these hardware features are in this file (main.c),
+ * the memory mapped values are in HaD_Badge.h
  *
- * User code should be placed in SuperCon-badge.animate.c, which is currently a set of examples
- * showing how to write to the display, use non-blocking delays, read buttons, and access the accelerometer.
+ * User code should be placed in SuperCon-badge.animate.c, which is currently
+ * a set of examples showing how to write to the display, use non-blocking
+ * delays, read buttons, and access the accelerometer.
  * 
- * Bootloader mode is entered by connecting USB to computer and holding Power while pressing Reset
- *   Badge will appear on computer as a USB storage device. Copy .hex file to badge, press power to run user code.
+ * Bootloader mode is entered by connecting USB to computer and holding Power
+ * while pressing Reset Badge will appear on computer as a USB storage device.
+ * Copy .hex file to badge, press power to run user code.
  *
  * MIT License (see license.txt)
  * Copyright (c) 2016 Hackaday.com
@@ -137,8 +141,7 @@ uint32_t getTime(void) {
     // 50%+25%=75%  (need 83.19% so about 9.84% error but some time is wasted with other stuff -- close enough for user)
     // improved to 50% + 25% + 6.25% + 1.5625% + 0.390625% = 83.203%
     
-//    return (ticks>>1)+(ticks>>2) + (ticks>>4) + (ticks>>6) + (ticks>>8);
-    return (ticks>>2) + (ticks>>3);
+    return (ticks>>1)+(ticks>>2);
 }
 
 void controlDelayMs(uint16_t ms) {
@@ -158,7 +161,7 @@ void controlDelayMs(uint16_t ms) {
  */
 int main(int argc, char** argv) {
     /****Functions must be called to place code for kernel****/
-    //initBootloaderInterruptHandling();
+    // initBootloaderInterruptHandling();
     /****End mandatory function calls*************************/
     
     /****Begin User Code**************************************/

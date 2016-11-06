@@ -13,7 +13,7 @@ extern "C" {
 #endif
 
 /* 
- * File:   SuperCon-badge-animate.c
+ * File:   binary-clock.c
  * Author: tyler@holmesengineering.com
  *
  * MIT License (see license.txt)
