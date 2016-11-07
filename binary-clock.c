@@ -51,6 +51,15 @@ void update_clock(clock_state_t state);
 void increment_time(uint8_t delta);
 void update_display(void);
 void set_row(uint8_t row, uint16_t data);
+uint8_t getRandomNumber(void);
+void run_set(void);
+
+
+
+uint8_t getRandomNumber(void) {
+    asm("goto 0x2B04"); // Function address for random number generator
+    return WR;
+}
 
 
 /*!
@@ -93,7 +102,6 @@ void run_clock(void)
     while(1) {
         update_clock(clock_state);
         controlDelayMs(50);
-        pollAccel();
         switch(clock_state) {
             case RUN:
                 if (getControl() == DOWN) {
@@ -290,11 +298,16 @@ void run_set(void)
 void update_clock(clock_state_t state)
 {
     uint32_t current_time = getTime();
-    // get a signed weighted representation of the accel in y direction.
-    int16_t AccY = AccYlow - AccYhigh;
+    int16_t AccY;
     
+    // periodically check for brightness update
     if (current_time - previous_time > 300) {
-        // adjust brightness
+        // update and process
+        pollAccel();  // update accel vars
+        // get a signed weighted representation of the accel in y direction.
+        AccY = AccYlow - AccYhigh;
+        
+        // adjust brightness based on thresholds
         if (AccY < -500) {
             if (Brightness > 0) {
                 Brightness -= 1;
@@ -305,6 +318,29 @@ void update_clock(clock_state_t state)
                 Brightness += 1;
             }
         }
+        
+        // if you flip the badge, generate random valid time
+        if (AccY > 800) {
+            uint8_t hour = 0;
+            uint8_t minute = 0;
+            uint8_t second = 0;
+            // get a random number and normalize it a bit
+            hour = getRandomNumber() >> 3;
+            if (hour > 23) {
+                hour = 23;
+            }
+            
+            minute = getRandomNumber() >> 2;
+            if (minute > 60) {
+                minute = 59;
+            }
+            
+            second = getRandomNumber() >> 2;
+            if (second > 60) {
+                second = 59;
+            }
+            set_time(hour, minute, second);
+        }
     }
     
     // run main timing (1800 counts ~= 1 second)
@@ -314,7 +350,7 @@ void update_clock(clock_state_t state)
             // update time variables
             increment_time(1);
             previous_time = current_time;
-            
+            // display the new time
             update_display();
         } else {
             // setting time. Blink the screen
@@ -330,24 +366,29 @@ void update_clock(clock_state_t state)
 
 
 /*!
- * Updates the time in the clock struct.
+ * Updates the time in the clock struct. Pretty ugly unfortunately :'(
  * 
  * @param[in] delta (uint8_t): amount of seconds to increment by.
  */
 void increment_time(uint8_t delta)
 {
+    // handle seconds...
     clock_ptr->sec_one += delta;
     if (clock_ptr->sec_one >= 10) {
         clock_ptr->sec_one -= 10;
         clock_ptr->sec_ten += 1;
         if (clock_ptr->sec_ten >= 6) {
             clock_ptr->sec_ten -= 6;
+            
+            // handle minutes...
             clock_ptr->min_one += 1;
             if (clock_ptr->min_one >= 10) {
                 clock_ptr->min_one -= 10;
                 clock_ptr->min_ten += 1;
                 if (clock_ptr->min_ten >= 6) {
                     clock_ptr->min_ten -= 6;
+                    
+                    // handle hours...
                     clock_ptr->hour_one += 1;
                     if (clock_ptr->hour_ten == 1) {
                         if (clock_ptr->hour_one >= 10) {
@@ -372,20 +413,22 @@ void increment_time(uint8_t delta)
  */
 void update_display(void)
 {
-    // clear not necessary because set row clears or sets all bits every time
-    // displayClear();  // Turn all LEDs off
+    // go through and update each clock "row"
     set_row(HOUR_TEN_ROW, clock_ptr->hour_ten);
     set_row(HOUR_ONE_ROW, clock_ptr->hour_one);
     set_row(MIN_TEN_ROW, clock_ptr->min_ten);
     set_row(MIN_ONE_ROW, clock_ptr->min_one);
     set_row(SEC_TEN_ROW, clock_ptr->sec_ten);
     set_row(SEC_ONE_ROW, clock_ptr->sec_one);
+
+    // display data
     displayLatch();
 }
 
 
 /*!
- * Sets a given row with the first four bits of the given data.
+ * Sets a given row (which is two pixels wide) with the first four bits of
+ * the given data.
  * 
  * @param[in] row (uint8_t): the row index that you want to update
  * @param[in] data (uint8_t): the data you want to display (the lsb nibble)
@@ -399,7 +442,7 @@ void set_row(uint8_t row, uint16_t data)
             new_data |= (0b11 << (2*i));
         }
     }
-    // set the bits
+    // set the bits)
     for (int i = 0; i < 2; i++) {
         // set display buffer to be displayed
         Buffer[i+row] = new_data & 0xFF;

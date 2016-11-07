@@ -5,7 +5,6 @@
                    displayName="Header Files"
                    projectFiles="true">
       <itemPath>HaD_Badge.h</itemPath>
-      <itemPath>SuperCon-badge-animate.h</itemPath>
     </logicalFolder>
     <logicalFolder name="LinkerScript"
                    displayName="Linker Files"
@@ -14,7 +13,6 @@
     <logicalFolder name="SourceFiles"
                    displayName="Source Files"
                    projectFiles="true">
-      <itemPath>SuperCon-badge-animate.c</itemPath>
       <itemPath>license.txt</itemPath>
       <itemPath>main.c</itemPath>
       <itemPath>binary-clock.c</itemPath>

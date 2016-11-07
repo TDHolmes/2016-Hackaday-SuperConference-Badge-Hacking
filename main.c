@@ -132,6 +132,7 @@ void pollAccel(void) {
     asm("goto 0x2B14"); //Function address for kernel accelerometer read
 }
 
+
 uint32_t getTime(void) {
     //Return approximate milliseconds (upcounting)
     
