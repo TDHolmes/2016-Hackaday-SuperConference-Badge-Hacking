@@ -320,7 +320,7 @@ void update_clock(clock_state_t state)
         }
         
         // if you flip the badge, generate random valid time
-        if (AccY > 800) {
+        if (AccY > 800 && clock_state == RUN) {
             uint8_t hour = 0;
             uint8_t minute = 0;
             uint8_t second = 0;
@@ -358,6 +358,32 @@ void update_clock(clock_state_t state)
                 update_display();
             } else {
                 displayClear();  // Turn all LEDs off
+                // keep row that is being edited on
+                switch(set_state) {
+                    case HOUR_TEN:
+                        set_row(HOUR_TEN_ROW, clock_ptr->hour_ten);
+                    break;
+
+                    case HOUR_ONE:
+                        set_row(HOUR_ONE_ROW, clock_ptr->hour_one);
+                    break;
+
+                    case MIN_TEN:
+                        set_row(MIN_TEN_ROW, clock_ptr->min_ten);
+                    break;
+
+                    case MIN_ONE:
+                        set_row(MIN_ONE_ROW, clock_ptr->min_one);
+                    break;
+
+                    case SEC_TEN:
+                        set_row(SEC_TEN_ROW, clock_ptr->sec_ten);
+                    break;
+
+                    case SEC_ONE:
+                        set_row(SEC_ONE_ROW, clock_ptr->sec_one);
+                    break;
+                }
                 displayLatch();
             }
         }
